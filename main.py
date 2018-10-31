@@ -107,10 +107,10 @@ if __name__ == "__main__":
 
     train_loader = Loader(train_path, arg.batch_size, transform = preprocess, sampler = '',
         torch_type = 'float', cpus = 4, shuffle = True, drop_last = True)
-    val_loader = Loader(val_path, arg.batch_size, transform = preprocess, sampler = '',
-        torch_type = 'float', cpus = 4, shuffle = True, drop_last = True)
-    test_loader = Loader(test_path, arg.batch_size, transform = None, sampler = '',
-        torch_type = 'float', cpus = 4, shuffle = True, drop_last = True)
+    val_loader = Loader(val_path, arg.batch_size, transform=preprocess, sampler=arg.sampler,
+        torch_type=arg.dtype, cpus=arg.cpus, shuffle=False, drop_last=False)
+    test_loader = Loader(test_path, 1, torch_type=arg.dtype, cpus=arg.cpus,
+        shuffle=False, drop_last=False)
     norm_layer = nn.BatchNorm2d
 
     act = nn.ReLU

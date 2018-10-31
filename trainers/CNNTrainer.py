@@ -143,7 +143,7 @@ class CNNTrainer(BaseTrainer):
 
 		# To Do : F0.5 score
 		f_best, th_best = -1, 0
-		for precision, recall, threshold in zip(*pr_value):
+		for precision, recall, threshold in zip(*pr_values):
 			f05 = (5 * precision * recall) / (precision + (4 * recall))
 			if f05 > f_best:
 				f_best = f05

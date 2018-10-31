@@ -30,7 +30,7 @@ class UnetConv2D(nn.Module):
 	def __init__(self, in_size, out_size, norm, kernel_size = 3, stride = 1, padding = 1, act=nn.ReLU):
 		super(UnetConv2D, self).__init__()
 		self.conv1 = ConvBNReLU(in_size, out_size, norm, kernel_size, stride, padding, act)
-		self.conv2 = ConvBNReLU(out_size, out_size, norm, kernel_size, stride, padding, act)
+		self.conv2 = ConvBNReLU(out_size, out_size, norm, kernel_size, 1, padding, act)
 
 	def forward(self, inputs):
 		x = self.conv1(inputs)
