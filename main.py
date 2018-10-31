@@ -118,7 +118,7 @@ if __name__ == "__main__":
     net = Unet2D(feature_scale = 4, act = act)
 
     net = nn.DataParallel(net).to(torch_device)
-    recon_loss = nn.BCEWithLogitsLoss()
+    recon_loss = nn.BCELoss()
 
     model = CNNTrainer(arg, net, torch_device, recon_loss = recon_loss)
 

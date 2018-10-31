@@ -76,7 +76,7 @@ class CNNTrainer(BaseTrainer):
 				self.G.train()
 				input_, target_ = input_.to(self.torch_device), target_.to(self.torch_device)
 				output_ = self.G(input_)
-
+				output_ = torch.sigmoid(output_)
 				recon_loss = self.recon_loss(output_, target_)
 				
 				self.optim.zero_grad()
