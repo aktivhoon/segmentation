@@ -23,11 +23,7 @@ def arg_parse():
     parser.add_argument('--cpus', type=int, default="4",
                         help="Select CPU Number workers")
     parser.add_argument('--model', type=str, default='unet',
-                        choices=['fusion', "unet", "unet_sh", "unetres", "exfuse",
-                                 "unetgn", "gcnssc",
-                                 "unetgcn", "unetgcnseb", "unetgcnecre", "unetexfuse", "gcn_orin", "gcn2",
-                                 "ecre", "unetgcnecre2", "unetgcnecre3",
-                                 "unetslim"], required=True)
+                        choices=["unet", "unetres", "probunet", "vnet"], required=True)
     parser.add_argument('--norm', type=str, default='bn', choices=["in", "bn", "bin"])
     parser.add_argument('--act', type=str, default='relu', choices=["relu", "elu", "leaky", "prelu"])
 
@@ -66,13 +62,10 @@ def arg_parse():
 
     parser.add_argument('--save_dir', type=str, default='',
                         help='Directory name to save the model')
-
+    parser.add_argument('--feature_scale', type=int, default=4, help='Feature_scale of the net')
     # Adam Parameter
     parser.add_argument('--lrG',   type=float, default=0.0005)
     parser.add_argument('--beta',  nargs="*", type=float, default=(0.5, 0.999))
-
-    # Model name
-    parser.add_argument('--name', type=str, default='model')
 
     return parser.parse_args()
 
@@ -114,8 +107,10 @@ if __name__ == "__main__":
     norm_layer = nn.BatchNorm2d
 
     act = nn.ReLU
-
-    net = Unet2D(feature_scale = 4, act = act)
+    if arg.model == "unet":
+        net = Unet2D(feature_scale = arg.feature_scale, act = act)
+    elif arg.model == "unetres":
+        net = UnetRes2D(feature_scale = arg.feature_scale, act = act)
 
     net = nn.DataParallel(net).to(torch_device)
     recon_loss = nn.BCELoss()
