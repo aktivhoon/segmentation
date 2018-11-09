@@ -109,4 +109,5 @@ def __test_npy(npy, txt):
     print("shape : ", npy.shape)
     print("type : ", npy.dtype)
     print("min : ", npy.min())
-	print("max : ", npy.max())
+    print("max : ", npy.max())
+

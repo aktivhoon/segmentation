@@ -120,4 +120,4 @@ if __name__ == "__main__":
 
     if arg.test is False:
         model.train(train_loader, val_loader)
-model.test(test_loader, val_loader)
+    model.test(test_loader, val_loader)
