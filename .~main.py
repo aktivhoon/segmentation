@@ -19,12 +19,16 @@ def arg_parse():
     desc = "Nucleus Segmentation"
     parser = argparse.ArgumentParser(description=desc)
 
-    parser.add_argument('--gpus', type=str, default="0,1,2,3",
+    parser.add_argument('--gpus', type=str, default="0,1,2,3,4,5",
                         help="Select GPU Numbering | 0,1,2,3 | ")
-    parser.add_argument('--cpus', type=int, default="4",
+    parser.add_argument('--cpus', type=int, default="32",
                         help="Select CPU Number workers")
     parser.add_argument('--model', type=str, default='unet',
-                        choices=["unet", "unetres", "probunet", "vnet"], required=True)
+                        choices=['fusion', "unet", "unet_sh", "unetres", "exfuse",
+                                 "unetgn", "gcnssc",
+                                 "unetgcn", "unetgcnseb", "unetgcnecre", "unetexfuse", "gcn_orin", "gcn2",
+                                 "ecre", "unetgcnecre2", "unetgcnecre3",
+                                 "unetslim"], required=True)
     parser.add_argument('--norm', type=str, default='bn', choices=["in", "bn", "bin"])
     parser.add_argument('--act', type=str, default='relu', choices=["relu", "elu", "leaky", "prelu"])
 
@@ -37,7 +41,7 @@ def arg_parse():
     parser.add_argument('--ngf',   type=int, default=16)
     parser.add_argument('--clamp', type=tuple, default=None)
 
-    parser.add_argument('--augment', type=str, default='',
+    parser.add_argument('--augment', type=str, default='elastic',
                         help='The type of augmentaed ex) crop,rotate ..  | crop | flip | elastic | rotate |')
 
     # TODO : Weighted BCE
@@ -58,15 +62,18 @@ def arg_parse():
                         help='The setting sampler')
 
     parser.add_argument('--epoch', type=int, default=300, help='The number of epochs')
-    parser.add_argument('--batch_size', type=int, default=4, help='The size of batch')
+    parser.add_argument('--batch_size', type=int, default=8, help='The size of batch')
     parser.add_argument('--test', action="store_true", help='The size of batch')
 
     parser.add_argument('--save_dir', type=str, default='',
                         help='Directory name to save the model')
- 
+
     # Adam Parameter
     parser.add_argument('--lrG',   type=float, default=0.0005)
     parser.add_argument('--beta',  nargs="*", type=float, default=(0.5, 0.999))
+
+    # Model name
+    parser.add_argument('--name', type=str, default='model')
 
     return parser.parse_args()
 
@@ -100,7 +107,7 @@ if __name__ == "__main__":
     preprocess = preprocess.get_preprocess(arg.augment)
 
     train_loader = Loader(train_path, arg.batch_size, transform = preprocess, sampler = '',
-        torch_type = 'float', cpus = 4, shuffle = True, drop_last = True)
+        torch_type = 'float', cpus = arg.cpus, shuffle = True, drop_last = True)
     val_loader = Loader(val_path, arg.batch_size, transform=preprocess, sampler=arg.sampler,
         torch_type=arg.dtype, cpus=arg.cpus, shuffle=False, drop_last=False)
     test_loader = Loader(test_path, 1, torch_type=arg.dtype, cpus=arg.cpus,
@@ -108,11 +115,16 @@ if __name__ == "__main__":
     norm_layer = nn.BatchNorm2d
 
     act = nn.ReLU
+    
     if arg.model == "unet":
-        net = Unet2D(feature_scale = arg.feature_scale, act = act)
+        net = Unet2D(feature_scale=arg.feature_scale, act=act)
     elif arg.model == "unetres":
         net = UnetRes2D(1, nn.InstanceNorm2d, is_pool=arg.pool)
-
+    elif arg.model == "unetgcn":
+        net = UnetGCN(arg.feature_scale, norm=norm_layer, is_pool=arg.pool)
+    else:
+        raise NotImplementedError("Not Implemented Model")
+        
     net = nn.DataParallel(net).to(torch_device)
     recon_loss = nn.BCEWithLogitsLoss()
 
@@ -120,4 +132,4 @@ if __name__ == "__main__":
 
     if arg.test is False:
         model.train(train_loader, val_loader)
-model.test(test_loader, val_loader)
+    model.test(test_loader, val_loader)
