@@ -9,6 +9,7 @@ import utils
 import preprocess
 from Loader import Loader
 from models.unet import Unet2D
+from models.unetRes import UnetRes2D
 
 from trainers.CNNTrainer import CNNTrainer
 
@@ -62,7 +63,7 @@ def arg_parse():
 
     parser.add_argument('--save_dir', type=str, default='',
                         help='Directory name to save the model')
-    parser.add_argument('--feature_scale', type=int, default=4, help='Feature_scale of the net')
+ 
     # Adam Parameter
     parser.add_argument('--lrG',   type=float, default=0.0005)
     parser.add_argument('--beta',  nargs="*", type=float, default=(0.5, 0.999))
@@ -93,8 +94,8 @@ if __name__ == "__main__":
     torch_device = torch.device("cuda")
 
     train_path = "data/prostate/train/"
-    val_path = "data/prostate/val"
-    test_path = "data/prostate/test"
+    val_path = "data/prostate/val/"
+    test_path = "data/prostate/test/"
 
     preprocess = preprocess.get_preprocess(arg.augment)
 
@@ -110,10 +111,10 @@ if __name__ == "__main__":
     if arg.model == "unet":
         net = Unet2D(feature_scale = arg.feature_scale, act = act)
     elif arg.model == "unetres":
-        net = UnetRes2D(feature_scale = arg.feature_scale, act = act)
+        net = UnetRes2D(1, nn.InstanceNorm2d, is_pool=arg.pool)
 
     net = nn.DataParallel(net).to(torch_device)
-    recon_loss = nn.BCELoss()
+    recon_loss = nn.BCEWithLogitsLoss()
 
     model = CNNTrainer(arg, net, torch_device, recon_loss = recon_loss)
 

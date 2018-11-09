@@ -26,14 +26,12 @@ class CNNTrainer(BaseTrainer):
 
 		self.best_metric = 0
 		self.sigmoid = nn.Sigmoid().to(self.torch_device)
-		self.name = arg.name
 
 		self.load()
 		self.prev_epoch_loss = 0
 
-	def save(self, epoch):
-		filename = self.name
-		save_path = self.save_path + "/fold%s"%(self.fold)
+	def save(self, epoch, filename="models"):
+		save_path = self.save_path + "fold%s"%(self.fold)
 		if os.path.exists(self.save_path) is False:
 			os.mkdir(self.save_path)
 		if os.path.exists(save_path) is False:
@@ -48,8 +46,8 @@ class CNNTrainer(BaseTrainer):
 		print("Model saved %d epoch" % (epoch))
 
 	def load(self):
-		save_path = self.save_path + "/fold%s"%(self.fold)
-		if os.path.exists(save_path + "/" + self.name + ".pth.tar") is True:
+		save_path = self.save_path + "fold%s"%(self.fold)
+		if os.path.exists(save_path + "/models.pth.tar") is True:
 			print("Load %s File" % (save_path))
 			ckpoint = torch.load(save_path + "/models.pth.tar")
 			if ckpoint["model_type"] != self.model_type:
@@ -76,7 +74,6 @@ class CNNTrainer(BaseTrainer):
 				self.G.train()
 				input_, target_ = input_.to(self.torch_device), target_.to(self.torch_device)
 				output_ = self.G(input_)
-				output_ = torch.sigmoid(output_)
 				recon_loss = self.recon_loss(output_, target_)
 				
 				self.optim.zero_grad()

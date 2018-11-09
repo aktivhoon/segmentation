@@ -52,7 +52,6 @@ class NSDataset(data.Dataset):
         # 2D ( 1 x H x W )
         input_np  = img[:, :512].copy()
         target_np = img[:, 512:].copy()
-
         if idx >= self.origin_image_len:
             for t in self.transform:
                 input_np, target_np = t(input_np, target_np)
