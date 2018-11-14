@@ -10,9 +10,9 @@ from glob import glob
 import warnings
 warnings.filterwarnings("ignore", ".*output shape of zoom.*")
 
-class NSDataset(data.Dataset):
+class CTDataset(data.Dataset):
     # TODO : infer implementated
-    def __init__(self, img_root, channel, sampler=None, infer=False, transform=None, torch_type="float", augmentation_rate=0.3):
+    def __init__(self, img_root, channel, sampler=None, infer=False, transform=None, torch_type="float", augmentation_rate=0.3, is3d=False):
         if type(img_root) == list:
             img_paths = [p for path in img_root for p in glob(path + "/*.npy")]
         else:
@@ -30,14 +30,17 @@ class NSDataset(data.Dataset):
         self.torch_type = torch.float  if torch_type == "float" else torch.half
 
         self.channel = channel
+        self.is3d = is3d
 
     def __getitem__(self, idx):
-        if self.channel == 1:
+        if self.is3d:
+            return self._3D_image(idx)
+        elif self.channel == 1:
             return self._2D_image(idx)
         elif self.channel > 1:
             return self._25D_image(idx)
         else:
-            raise ValueError("NSDataset data type must be 2d, 25d, 3d")
+            raise ValueError("CTDataset data type must be 2d, 25d, 3d")
 
     def __len__(self):
         return len(self.img_paths)
@@ -57,6 +60,20 @@ class NSDataset(data.Dataset):
                 input_np, target_np = t(input_np, target_np)
 
         input_  = self._np2tensor(input_np ).resize_((1, *input_np.shape))
+        target_ = self._np2tensor(target_np).resize_((1, *target_np.shape))
+        return input_, target_, os.path.basename(img_path)
+
+    def _3D_image(self, idx):
+        img_path = self.img_paths[idx]
+        img = np.load(img_path)
+        # 3D ( 1 x H x W x D)
+        input_np = img[:, :, :512].copy()
+        target_np = img[:, :, 512:].copy()
+        if idx >= self.origin_image_len:
+            for t in self.transform:
+                input_np, target_np = t(input_np, target_np)
+
+        input_  = self._np2tensor(input_np ).resize_((1, *input_np.shape ))
         target_ = self._np2tensor(target_np).resize_((1, *target_np.shape))
         return input_, target_, os.path.basename(img_path)
 
@@ -90,8 +107,8 @@ def make_weights_for_balanced_classes(seg_dataset):
 
     return weight, count
 
-def Loader(image_path, batch_size, patch_size=0, transform=None, sampler='',channel=1, torch_type="float", shuffle=True, cpus=1, infer=False, drop_last=True):
-    dataset = NSDataset(image_path, channel, infer=infer, transform=transform, torch_type=torch_type)
+def Loader(image_path, batch_size, patch_size=0, transform=None, sampler='',channel=1, torch_type="float", shuffle=True, cpus=1, infer=False, drop_last=True, is3d=False):
+    dataset = CTDataset(image_path, channel, infer=infer, transform=transform, torch_type=torch_type, is3d=is3d)
     if sampler == "weight":
         weights, img_num_per_class = make_weights_for_balanced_classes(dataset)
         print("Sampler Weights : ", weights)

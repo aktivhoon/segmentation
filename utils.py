@@ -25,6 +25,24 @@ def confusion_matrix_2d(x, y, th = 0.5, reduce = True):
 
 	return tp, tn, fp, fn
 
+def confusion_matrix_3d(x, y, th = 0.5, reduce = True):
+	x_ = x.gt(th).to(torch.float)
+	y_ = y.gt(th).to(torch.float)
+
+	c = 2 * y_ - x_
+
+	if reduce:
+		dim = [0, 1, 2, 3, 4]
+	else:
+		dim = [1, 2, 3, 4]
+
+	tp = (c == 1).sum(dim=dim, dtype=torch.float)
+	tn = (c == 0).sum(dim=dim, dtype=torch.float)
+	fp = (c == -1).sum(dim=dim, dtype=torch.float)
+	fn = (c == 2).sum(dim=dim, dtype=torch.float)
+
+	return tp, tn, fp, fn
+
 class AverageMeter(object):
 	"""Computes and stores the average and current value"""
 	def __init__(self):
@@ -142,6 +160,10 @@ def image_save(save_path, *args):
 	total = np.concatenate(args, axis = 1)
 	np.save(save_path + '.npy', total)
 	scipy.misc.imsave(save_path + '.jpg', total)
+
+def voxel_save(save_path, *args):
+	total = np.concatenate(args, axis = 2)
+	np.save(save_path + '.npy', total)
 
 def slack_alarm(send_id, send_msg="Train Done"):
     """

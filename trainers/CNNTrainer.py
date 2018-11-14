@@ -84,14 +84,6 @@ class CNNTrainer(BaseTrainer):
 				target_np = target_.type(torch.FloatTensor).numpy()
 				output_np = output_.data.cpu().numpy()
 
-				if recon_loss < -100:
-					target_name = "weird_target_" + str(epoch) + "_" + str(i)
-					target_path = "%s/fold%s/%s" % (self.save_path, self.fold, target_name)
-					np.save(target_path + '.npy', target_np)
-					output_name = "weird_output_" + str(epoch) + "_" + str(i)
-					output_path = "%s/fold%s/%s" % (self.save_path, self.fold, output_name)
-					np.save(output_path + '.npy', output_np)
-
 				if (i % 50) == 0:
 					self.logger.will_write("[Train] epoch: %d loss: %f" % (epoch, recon_loss))
 

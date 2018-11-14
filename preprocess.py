@@ -86,6 +86,37 @@ def elastic_transform(input_, target_, param_list=None, random_state=None):
         transformed.append(new)
     return transformed
 
+def elastic_transform_3d(input_, target_, param_list=None, random_state=None):    
+    if param_list is None:
+        param_list = [(1, 1), (5, 2), (1, 0.5), (1, 3)]
+    alpha, sigma = random.choice(param_list)
+
+    assert len(input_.shape)==2
+    shape = input_.shape
+
+    if random_state is None:
+       random_state = np.random.RandomState(None)    
+
+    dx = gaussian_filter((random_state.rand(*shape) * 2 - 1), sigma, mode="constant", cval=0) * alpha
+    dy = gaussian_filter((random_state.rand(*shape) * 2 - 1), sigma, mode="constant", cval=0) * alpha
+    dz = gaussian_filter((random_state.rand(*shape) * 2 - 1), sigma, mode="constant", cval=0) * alpha
+
+    #print(np.mean(dx), np.std(dx), np.min(dx), np.max(dx))
+
+    x, y, z = np.meshgrid(np.arange(shape[0]), np.arange(shape[1]), np.arange(shape[2]) indexing='ijk')
+    indices = np.reshape(x+dx, (-1, 1)), np.reshape(y+dy, (-1, 1)), np.reshape(z+dz, (-1, 1))
+    
+    transformed = []
+    for image in [input_, target_]:
+        new = np.zeros(shape)
+        if len(shape) == 4:
+            for i in range(image.shape[3]):
+                new[:, :, :, i] = map_coordinates(image[:, :, :, i], indices, order=1, mode="reflect").reshape(shape)
+        else:
+            new[:, :, :] = map_coordinates(image[:, :, :], indices, order=1, mode="reflect").reshape(shape)
+        transformed.append(new)
+    return transformed
+
 
 ARG_TO_DICT = {
         "crop":random_crop2d,
@@ -93,6 +124,7 @@ ARG_TO_DICT = {
         "elastic":elastic_transform,
         "rotate":random_rotate2d,
         "cut":cut_out
+        "3d_elastic":elastic_transform_3d
         }
 
 def get_preprocess(preprocess_list):
