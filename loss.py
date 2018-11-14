@@ -55,3 +55,4 @@ if __name__ == "__main__":
     l = loss(predicted, target)
     print("Loss : ", l)
     l.backward()
+

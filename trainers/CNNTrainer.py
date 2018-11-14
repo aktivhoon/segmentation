@@ -176,3 +176,4 @@ class CNNTrainer(BaseTrainer):
 
 		self.logger.write("Best dice:%f jcc:%f f05:%f f1:%f f2:%f roc:%f pr:%f" % (cm.dice.avg, cm.jcc.avg, cm.f05, cm.f1, cm.f2, roc_auc, pr_auc))
 		print("End Test\n")
+

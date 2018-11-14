@@ -127,3 +127,4 @@ def __test_npy(npy, txt):
     print("type : ", npy.dtype)
     print("min : ", npy.min())
     print("max : ", npy.max())
+
