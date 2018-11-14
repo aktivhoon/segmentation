@@ -51,4 +51,4 @@ class Logger:
 
         self.train = train
         self.val = val
-	self.test = test
+        self.test = test

@@ -93,9 +93,9 @@ if __name__ == "__main__":
     os.environ["CUDA_VISIBLE_DEVICES"] = arg.gpus
     torch_device = torch.device("cuda")
 
-    train_path = "data/prostate/train/"
-    val_path = "data/prostate/val/"
-    test_path = "data/prostate/test/"
+    train_path = "data/bladder/train/"
+    val_path = "data/bladder/val/"
+    test_path = "data/bladder/test/"
 
     preprocess = preprocess.get_preprocess(arg.augment)
 
