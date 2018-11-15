@@ -92,16 +92,16 @@ def elastic_transform_3d(input_, target_, param_list=None, random_state=None):
     alpha, sigma = random.choice(param_list)
 
     assert len(input_.shape)==3
+    
+    shape_2d = input_.shape[0:-1]
     shape = input_.shape
-
     if random_state is None:
        random_state = np.random.RandomState(None)    
 
-    dx = gaussian_filter((random_state.rand(*shape) * 2 - 1), sigma, mode="constant", cval=0) * alpha
-    dy = gaussian_filter((random_state.rand(*shape) * 2 - 1), sigma, mode="constant", cval=0) * alpha
+    dx = gaussian_filter((random_state.rand(*shape_2d) * 2 - 1), sigma, mode="constant", cval=0) * alpha
+    dy = gaussian_filter((random_state.rand(*shape_2d) * 2 - 1), sigma, mode="constant", cval=0) * alpha
 
     #print(np.mean(dx), np.std(dx), np.min(dx), np.max(dx))
-
     x, y = np.meshgrid(np.arange(shape[0]), np.arange(shape[1]), indexing='ij')
     indices = np.reshape(x+dx, (-1, 1)), np.reshape(y+dy, (-1, 1))
     
@@ -109,12 +109,11 @@ def elastic_transform_3d(input_, target_, param_list=None, random_state=None):
     for image in [input_, target_]:
         for slices in range(0, shape[2]):
             new = np.zeros(shape)
-            print(input_.shape)
             if len(shape) == 4:
                 for i in range(image.shape[3]):
-                    new[:, :, i, slices] = map_coordinates(image[:, :, i, slices], indices, order=1, mode="reflect").reshape(shape)
+                    new[:, :, i, slices] = map_coordinates(image[:, :, i, slices], indices, order=1, mode="reflect").reshape(shape_2d)
             else:
-                new[:, :, slices] = map_coordinates(image[:, :, slices], indices, order=1, mode="reflect").reshape(shape)
+                new[:, :, slices] = map_coordinates(image[:, :, slices], indices, order=1, mode="reflect").reshape(shape_2d)
         transformed.append(new)
     return transformed
 
@@ -124,7 +123,7 @@ ARG_TO_DICT = {
         "flip":random_flip2d,        
         "elastic":elastic_transform,
         "rotate":random_rotate2d,
-        "cut":cut_out
+        "cut":cut_out,
         "3d_elastic":elastic_transform_3d
         }
 

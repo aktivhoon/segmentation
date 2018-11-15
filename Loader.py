@@ -67,12 +67,11 @@ class CTDataset(data.Dataset):
         img_path = self.img_paths[idx]
         img = np.load(img_path)
         # 3D ( 1 x H x W x D)
-        input_np = img[:, :, :512].copy()
-        target_np = img[:, :, 512:].copy()
+        input_np = img[:, :64, :].copy()
+        target_np = img[:, 64:, :].copy()
         if idx >= self.origin_image_len:
             for t in self.transform:
                 input_np, target_np = t(input_np, target_np)
-
         input_  = self._np2tensor(input_np ).resize_((1, *input_np.shape ))
         target_ = self._np2tensor(target_np).resize_((1, *target_np.shape))
         return input_, target_, os.path.basename(img_path)

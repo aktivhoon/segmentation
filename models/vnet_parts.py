@@ -18,15 +18,12 @@ def ELUCons(elu, nchan):
 class ContBatchNorm3d(nn.modules.batchnorm._BatchNorm):
     def _check_input_dim(self, input):
         if input.dim() != 5:
-            raise ValueError('expected 5D input (got {}D input)'
-                             .format(input.dim()))
-        super(ContBatchNorm3d, self)._check_input_dim(input)
+            raise ValueError('expected 5D input (got {}D input)'.format(input.dim()))
+#        super()._check_input_dim(input)
 
     def forward(self, input):
         self._check_input_dim(input)
-        return F.batch_norm(
-            input, self.running_mean, self.running_var, self.weight, self.bias,
-            True, self.momentum, self.eps)
+        return F.batch_norm(input, self.running_mean, self.running_var, self.weight, self.bias, True, self.momentum, self.eps)
 
 
 class LUConv(nn.Module):
@@ -56,10 +53,11 @@ class InputTransition(nn.Module):
         self.relu1 = ELUCons(elu, 16)
 
     def forward(self, x):
-        out = self.bn1(self.conv1(x))
+        out = self.conv1(x)
+        out = self.bn1(out)
         # split input in to 16 channels
         x16 = torch.cat((x, x, x, x, x, x, x, x,
-                         x, x, x, x, x, x, x, x), 0)
+                         x, x, x, x, x, x, x, x), dim=1)
         out = self.relu1(torch.add(out, x16))
         return out
 
@@ -120,10 +118,10 @@ class OutputTransition(nn.Module):
         # convolve 32 down to 2 channels
         out = self.relu1(self.bn1(self.conv1(x)))
         out = self.conv2(out)
-
         # make channels the last axis
-        out = out.permute(0, 2, 3, 4, 1).contiguous()
         # flatten
-        out = out.view(out.numel() // 2, 2)
+        shape = out.shape
+        shape = [shape[0], 1, shape[2], shape[3], shape[4]]
+        out = out[:,0,:,:,:].reshape(shape)
         # treat channel 0 as the predicted output
         return out

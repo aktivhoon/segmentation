@@ -2,6 +2,8 @@ import torch
 import torch.nn as nn
 import torch.nn.functional as F
 
+from .vnet_parts import *
+
 class VNet(nn.Module):
     # the number of convolutions in each layer corresponds
     # to what is in the actual prototxt, not the intent
@@ -44,5 +46,7 @@ class VNet(nn.Module):
         out = self.up_tr128(out, out64)
         out = self.up_tr64(out, out32)
         out = self.up_tr32(out, out16)
+#        print(out.shape)
         out = self.out_tr(out)
+#        print(out.shape)
         return out
