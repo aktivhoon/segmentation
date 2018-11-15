@@ -1,7 +1,8 @@
 import torch
 import torch.nn as nn
 import torch.nn.functional as F
-from torch.autograd import Function
+from skimage import filters
+
 
 class FocalLoss(nn.Module):
 	def __init__(self, gamma = 2):
@@ -40,19 +41,20 @@ class TverskyLoss:
 		loss = PG / (PG + P_G + G_P + self.smooth)
 		return loss * -1
 
+
 if __name__ == "__main__":
 
-    def get_grad(*args):
-        print("Grad : \n", args)
-        
+	def get_grad(*args):
+		print("Grad : \n", args)
 
-    target = torch.tensor([[[0,1,0],[1,1,1],[0,1,0]]], dtype=torch.float, requires_grad=True)
-    predicted = torch.tensor([[[1,1,0],[0,0,0],[1,0,0]]], dtype=torch.float, requires_grad=True)
-    print("Prediction : \n", predicted); print("GroudTruth : \n", target)
-    predicted.register_hook(get_grad)
 
-    loss = TverskyLoss(0.3, torch.device("cpu"))
-    l = loss(predicted, target)
-    print("Loss : ", l)
-    l.backward()
+	target = torch.tensor([[[0,1,0],[1,1,1],[0,1,0]]], dtype=torch.float, requires_grad=True)
+	predicted = torch.tensor([[[1,1,0],[0,0,0],[1,0,0]]], dtype=torch.float, requires_grad=True)
+	print("Prediction : \n", predicted); print("GroudTruth : \n", target)
+	predicted.register_hook(get_grad)
+
+	loss = TverskyLoss(0.3, torch.device("cpu"))
+	l = loss(predicted, target)
+	print("Loss : ", l)
+	l.backward()
 

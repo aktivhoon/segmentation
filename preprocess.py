@@ -91,7 +91,7 @@ def elastic_transform_3d(input_, target_, param_list=None, random_state=None):
         param_list = [(1, 1), (5, 2), (1, 0.5), (1, 3)]
     alpha, sigma = random.choice(param_list)
 
-    assert len(input_.shape)==2
+    assert len(input_.shape)==3
     shape = input_.shape
 
     if random_state is None:
@@ -99,21 +99,22 @@ def elastic_transform_3d(input_, target_, param_list=None, random_state=None):
 
     dx = gaussian_filter((random_state.rand(*shape) * 2 - 1), sigma, mode="constant", cval=0) * alpha
     dy = gaussian_filter((random_state.rand(*shape) * 2 - 1), sigma, mode="constant", cval=0) * alpha
-    dz = gaussian_filter((random_state.rand(*shape) * 2 - 1), sigma, mode="constant", cval=0) * alpha
 
     #print(np.mean(dx), np.std(dx), np.min(dx), np.max(dx))
 
-    x, y, z = np.meshgrid(np.arange(shape[0]), np.arange(shape[1]), np.arange(shape[2]) indexing='ijk')
-    indices = np.reshape(x+dx, (-1, 1)), np.reshape(y+dy, (-1, 1)), np.reshape(z+dz, (-1, 1))
+    x, y = np.meshgrid(np.arange(shape[0]), np.arange(shape[1]), indexing='ij')
+    indices = np.reshape(x+dx, (-1, 1)), np.reshape(y+dy, (-1, 1))
     
     transformed = []
     for image in [input_, target_]:
-        new = np.zeros(shape)
-        if len(shape) == 4:
-            for i in range(image.shape[3]):
-                new[:, :, :, i] = map_coordinates(image[:, :, :, i], indices, order=1, mode="reflect").reshape(shape)
-        else:
-            new[:, :, :] = map_coordinates(image[:, :, :], indices, order=1, mode="reflect").reshape(shape)
+        for slices in range(0, shape[2]):
+            new = np.zeros(shape)
+            print(input_.shape)
+            if len(shape) == 4:
+                for i in range(image.shape[3]):
+                    new[:, :, i, slices] = map_coordinates(image[:, :, i, slices], indices, order=1, mode="reflect").reshape(shape)
+            else:
+                new[:, :, slices] = map_coordinates(image[:, :, slices], indices, order=1, mode="reflect").reshape(shape)
         transformed.append(new)
     return transformed
 
