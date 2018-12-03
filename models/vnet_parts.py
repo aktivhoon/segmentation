@@ -13,6 +13,13 @@ def ELUCons(elu, nchan):
     else:
         return nn.PReLU(nchan)
 
+def weights_init_kaiming(m):
+    classname = m.__class__.__name__
+    
+    if classname.find('Conv3d') != -1:
+         nn.init.kaiming_normal_(m.weight.data)
+         m.bias.data.zero_()
+
 # normalization between sub-volumes is necessary
 # for good performance
 class ContBatchNorm3d(nn.modules.batchnorm._BatchNorm):
@@ -109,19 +116,13 @@ class UpTransition(nn.Module):
 class OutputTransition(nn.Module):
     def __init__(self, inChans, elu):
         super(OutputTransition, self).__init__()
-        self.conv1 = nn.Conv3d(inChans, 2, kernel_size=5, padding=2)
-        self.bn1 = ContBatchNorm3d(2)
-        self.conv2 = nn.Conv3d(2, 2, kernel_size=1)
+        self.conv1 = nn.Conv3d(inChans, 2, kernel_size=1)
         self.relu1 = ELUCons(elu, 2)
 
     def forward(self, x):
         # convolve 32 down to 2 channels
-        out = self.relu1(self.bn1(self.conv1(x)))
-        out = self.conv2(out)
-        # make channels the last axis
-        # flatten
-        shape = out.shape
-        shape = [shape[0], 1, shape[2], shape[3], shape[4]]
-        out = out[:,0,:,:,:].reshape(shape)
+        out = self.relu1(self.conv1(x))
+        out = out[:,0,:,:,:].view(out.shape[0], 1, out.shape[2], out.shape[3], out.shape[4])
+        #print(out.shape)
         # treat channel 0 as the predicted output
         return out

@@ -86,9 +86,9 @@ def elastic_transform(input_, target_, param_list=None, random_state=None):
         transformed.append(new)
     return transformed
 
-def elastic_transform_3d(input_, target_, param_list=None, random_state=None):    
+def elastic_transform_3d(input_, target_, param_list=None, random_state=None):
     if param_list is None:
-        param_list = [(1, 1), (5, 2), (1, 0.5), (1, 3)]
+        param_list = [(1, 1), (1, 2), (0.5, 2), (1.5, 1)]
     alpha, sigma = random.choice(param_list)
 
     assert len(input_.shape)==3
@@ -107,8 +107,8 @@ def elastic_transform_3d(input_, target_, param_list=None, random_state=None):
     
     transformed = []
     for image in [input_, target_]:
+        new = np.zeros(shape)
         for slices in range(0, shape[2]):
-            new = np.zeros(shape)
             if len(shape) == 4:
                 for i in range(image.shape[3]):
                     new[:, :, i, slices] = map_coordinates(image[:, :, i, slices], indices, order=1, mode="reflect").reshape(shape_2d)

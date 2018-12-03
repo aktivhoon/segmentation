@@ -1,6 +1,7 @@
 import os
 from multiprocessing import Pool, Queue, Process
 
+import datetime
 import scipy
 import utils
 import numpy as np
@@ -9,6 +10,7 @@ import torch
 import torch.nn as nn
 from .BaseTrainer import BaseTrainer
 from utils import torch_downsample
+from loss import dice_coeff_loss
 
 from sklearn.metrics import f1_score, confusion_matrix, recall_score, jaccard_similarity_score, roc_curve, precision_recall_curve, roc_auc_score, auc
 
@@ -69,22 +71,16 @@ class VNetTrainer(BaseTrainer):
 
     def train(self, train_loader, val_loader = None):
         print("\nStart Train")
-
         for epoch in range(self.start_epoch, self.epoch):
             for i, (input_, target_, _) in enumerate(train_loader):
                 self.G.train()
                 input_, target_ = input_.to(self.torch_device), target_.to(self.torch_device)
                 output_ = self.G(input_).sigmoid()
                 self.optim.zero_grad()
-                recon_loss = self.recon_loss(output_, target_)
+                recon_loss = dice_coeff_loss(output_, target_)
                 recon_loss.backward()
                 self.optim.step()
-            
-                input_np = input_.type(torch.FloatTensor).numpy()
-                target_np = target_.type(torch.FloatTensor).numpy()
-                output_np = output_.data.cpu().numpy()
-            
-                if (i % 50) == 0:
+                if (i % 20) == 0:
                     self.logger.will_write("[Train] epoch: %d loss: %f" % (epoch, recon_loss))
             
             if val_loader is not None:
@@ -105,12 +101,9 @@ class VNetTrainer(BaseTrainer):
         with torch.no_grad():
             # (tn, fp, fn, tp)
             cm = utils.ConfusionMatrix()
-
             for i, (input_, target_, _) in enumerate(val_loader):
                 _, output_, target_ = self.forward_for_test(input_, target_)
-
                 cm.update(utils.confusion_matrix_3d(output_, target_, 0.5, reduce = False), n = output_.shape[0])
-
             metric = cm.jcc.avg + cm.dice.avg
             if metric > self.best_metric:
                 self.best_metric = metric

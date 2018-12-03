@@ -4,6 +4,7 @@ import torch
 torch.backends.cudnn.benchmark = True
 import torch.nn as nn
 from sklearn.metrics import jaccard_similarity_score, f1_score
+from loss import dice_coeff_loss
 
 import utils
 import preprocess
@@ -14,8 +15,6 @@ from models.vnet import VNet
 
 from trainers.CNNTrainer import CNNTrainer
 from trainers.VNetTrainer import VNetTrainer
-
-from loss import FocalLoss, TverskyLoss
 
 def arg_parse():
     desc = "Nucleus Segmentation"
@@ -60,7 +59,7 @@ def arg_parse():
                         help='The setting sampler')
 
     parser.add_argument('--epoch', type=int, default=300, help='The number of epochs')
-    parser.add_argument('--batch_size', type=int, default=4, help='The size of batch')
+    parser.add_argument('--batch_size', type=int, default=20, help='The size of batch')
     parser.add_argument('--test', action="store_true", help='The size of batch')
 
     parser.add_argument('--save_dir', type=str, default='',
@@ -95,18 +94,18 @@ if __name__ == "__main__":
     os.environ["CUDA_VISIBLE_DEVICES"] = arg.gpus
     torch_device = torch.device("cuda")
 
-    train_path = "data/3d_data/"
-    val_path = "data/bladder/val/"
-    test_path = "data/bladder/test/"
+    train_path = "/data/YH/voxel_data/prostate/train/"
+    val_path = "/data/YH/voxel_data/prostate/val/"
+    test_path = "/data/YH/voxel_data/prostate/test/"
 
     preprocess = preprocess.get_preprocess(arg.augment)
 
     train_loader = Loader(train_path, arg.batch_size, transform = preprocess, sampler = '',
         torch_type = 'float', cpus = 4, shuffle = True, drop_last = True, is3d = True)
     val_loader = Loader(val_path, arg.batch_size, transform=preprocess, sampler=arg.sampler,
-        torch_type=arg.dtype, cpus=arg.cpus, shuffle=False, drop_last=False)
+        torch_type=arg.dtype, cpus=arg.cpus, shuffle=False, drop_last=False, is3d = True)
     test_loader = Loader(test_path, 1, torch_type=arg.dtype, cpus=arg.cpus,
-        shuffle=False, drop_last=False)
+        shuffle=False, drop_last=False, is3d = True)
     norm_layer = nn.BatchNorm2d
 
     act = nn.ReLU
@@ -126,5 +125,5 @@ if __name__ == "__main__":
         model = CNNTrainer(arg, net, torch_device, recon_loss = recon_loss)
 
     if arg.test is False:
-        model.train(train_loader)
+        model.train(train_loader, val_loader)
     model.test(test_loader, val_loader)

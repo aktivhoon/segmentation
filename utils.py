@@ -40,7 +40,6 @@ def confusion_matrix_3d(x, y, th = 0.5, reduce = True):
 	tn = (c == 0).sum(dim=dim, dtype=torch.float)
 	fp = (c == -1).sum(dim=dim, dtype=torch.float)
 	fn = (c == 2).sum(dim=dim, dtype=torch.float)
-
 	return tp, tn, fp, fn
 
 class AverageMeter(object):

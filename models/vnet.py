@@ -19,6 +19,9 @@ class VNet(nn.Module):
         self.up_tr64 = UpTransition(128, 64, 1, elu)
         self.up_tr32 = UpTransition(64, 32, 1, elu)
         self.out_tr = OutputTransition(32, elu)
+        
+        for m in self.modules():
+            m.apply(weights_init_kaiming)
 
     # The network topology as described in the diagram
     # in the VNet paper
@@ -46,7 +49,5 @@ class VNet(nn.Module):
         out = self.up_tr128(out, out64)
         out = self.up_tr64(out, out32)
         out = self.up_tr32(out, out16)
-#        print(out.shape)
         out = self.out_tr(out)
-#        print(out.shape)
         return out

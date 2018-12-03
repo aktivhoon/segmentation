@@ -41,6 +41,30 @@ class TverskyLoss:
 		loss = PG / (PG + P_G + G_P + self.smooth)
 		return loss * -1
 
+def dice_coeff_loss(prob, label, nlabels=1):
+	max_val, pred = prob.max(1)
+	fg_mask = max_val.gt(0.5).type_as(label)
+
+	# masking
+	dices_per_label = []
+	smooth = 1e-10
+	eps = 1e-8
+	for l in range(0, nlabels):
+		dices = []
+		for n in range(prob.size(0)):
+			label_p = label[n].eq(l).float()
+
+			if l == 0:
+				prob_l = 1-max_val[n]
+			else:
+				prob_l = prob[n, l-1, :, :, :]
+			prob_l = torch.clamp(prob_l, eps, 1.0-eps)
+
+			# calc accuracy
+			jacc = 1.0 - torch.clamp(( ((prob_l * label_p).sum() + smooth) / ((label_p**2).sum() + (prob_l**2).sum() - (prob_l * label_p).sum() + smooth ) ), 0.0, 1.0)
+			dices.append(jacc.view(-1))
+		dices_per_label.append(torch.mean(torch.cat(dices)).view(-1))
+	return torch.mean(torch.cat(dices_per_label))
 
 if __name__ == "__main__":
 
