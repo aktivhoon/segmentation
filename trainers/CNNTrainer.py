@@ -104,13 +104,14 @@ class CNNTrainer(BaseTrainer):
 		with torch.no_grad():
 			# (tn, fp, fn, tp)
 			cm = utils.ConfusionMatrix()
+			sDice = utils.SurfaceDSC()
 
 			for i, (input_, target_, _) in enumerate(val_loader):
 				_, output_, target_ = self.forward_for_test(input_, target_)
-
+				sDice.update(utils.surface_DSC(target_, output_))
 				cm.update(utils.confusion_matrix_2d(output_, target_, 0.5, reduce = False), n = output_.shape[0])
 
-			metric = cm.jcc.avg + cm.dice.avg
+			metric = sDice.sDSC
 			if metric > self.best_metric:
 				self.best_metric = metric
 				self.save(epoch)

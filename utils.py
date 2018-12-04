@@ -1,11 +1,21 @@
 # utils.py
+
+#################################################
+# 2D version of surface DSC is defined based on # 
+# N Stanislav et al. arXiv:1809.04430 (2018).   #
+# Please check their paper for furhter details. #
+#################################################
+
 import os
 import numpy as np
 import scipy
-from sklearn.metrics import confusion_matrix
 import torch.nn.functional as F
 import torch
 import math
+
+from scipy import ndimage, misc
+from PIL import Image
+from PIL import ImageFilter
 
 def confusion_matrix_2d(x, y, th = 0.5, reduce = True):
 	x_ = x.gt(th).to(torch.float)
@@ -42,6 +52,59 @@ def confusion_matrix_3d(x, y, th = 0.5, reduce = True):
 	fn = (c == 2).sum(dim=dim, dtype=torch.float)
 	return tp, tn, fp, fn
 
+def binary(mask, th):
+	mask[mask >= th] = 1
+	mask[mask <  th] = 0
+
+	return mask
+
+def small_contour(mask, contour_width):
+	contour = Image.fromarray(mask)
+	contour = contour.convert('L')
+	contour = contour.filter(ImageFilter.FIND_EDGES)
+	contour = np.array(contour)
+
+	# make sure borders are not drawn
+	contour[[0, -1], :] = 0
+	contour[:, [0, -1]] = 0
+
+	# use a gaussian to define the contour width
+	radius = contour_width / 5
+	contour = Image.fromarray(contour)
+	contour = contour.filter(ImageFilter.GaussianBlur(radius=radius))
+	contour = (np.array(contour) > 0).astype(float)
+	return contour
+
+def big_contour(npy, rate, filter_rate):
+	# erosion
+	ero = ndimage.binary_erosion(npy, structure=np.ones((rate,rate)))
+
+	# dilation
+	dil = ndimage.grey_dilation(npy, size=(rate,rate), structure=np.ones((rate,rate))) / 2.0
+	dil = binary(dil, 0.9)
+
+	contour = dil - ero
+	contour[contour <= 0] = 0
+
+	contour = ndimage.filters.median_filter(contour, size=(filter_rate,filter_rate))
+	contour = np.array(contour).astype(float)
+	return contour
+
+def surface_DSC(output_, target_):
+	prediction = binary(output_, 0.5)
+	ground_truth = binary(target_, 0.5)
+
+	b_gt = big_contour(ground_truth, 5, 1)
+	s_p = small_contour(prediction, 3)
+	bs_gtp = np.sum((b_gt + s_p) == 2)
+
+	b_p = big_contour(prediction, 5, 1)
+	s_gt = small_contour(ground_truth, 3)
+	bs_pgt = np.sum((b_p + s_gt) == 2)
+
+	s_DSC = (bs_gtp + bs_pgt) / (np.sum(s_p) + np.sum(s_gt))
+	return s_DSC
+
 class AverageMeter(object):
 	"""Computes and stores the average and current value"""
 	def __init__(self):
@@ -58,6 +121,13 @@ class AverageMeter(object):
 		self.sum += val.mean() * n
 		self.count += n
 		self.avg = self.sum / self.count
+
+class SurfaceDSC(object):
+	def __init__(self):
+		self.sDSC = AverageMeter()
+
+	def update(self, sDSC, n):
+		self.sDSC.update(sDSC, n=n)
 
 class ConfusionMatrix(object):
 	def __init__(self):
@@ -150,7 +220,7 @@ def get_roc_pr(tn, fp, fn, tp):
 	f1 = (2 * tp) / ((2 * tp) + fp + fn) if ((2 * tp) + fp + fn) != 0 else 1
 	jaccard = tp / (tp + fp + fn) if (tp + fp + fn) != 0 else 1
 
-	return sensitivity, 1 - specificty, precision, recall, f1, jaccard
+	return sensitivity, 1 - specificity, precision, recall, f1, jaccard
 
 def slice_threshold(_np, th):
 	return (_np >= th).astype(int)
@@ -165,24 +235,24 @@ def voxel_save(save_path, *args):
 	np.save(save_path + '.npy', total)
 
 def slack_alarm(send_id, send_msg="Train Done"):
-    """
+	"""
     send_id : slack id. ex) zsef123
     """
-    from slackclient import SlackClient
-    slack_client = SlackClient(os.environ.get('SLACK_BOT_TOKEN'))
-    if slack_client.rtm_connect(with_team_state=False):
-        ret = slack_client.api_call("chat.postMessage", channel="@"+send_id, text=send_msg, as_user=True)
-        resp = "Send Failed" if ret['ok'] == False else "To %s, send %s"%(send_id, send_msg)
-        print(resp)
-    else:
-        print("Client connect Fail")
+	from slackclient import SlackClient
+	slack_client = SlackClient(os.environ.get('SLACK_BOT_TOKEN'))
+	if slack_client.rtm_connect(with_team_state=False):
+		ret = slack_client.api_call("chat.postMessage", channel="@"+send_id, text=send_msg, as_user=True)
+		resp = "Send Failed" if ret['ok'] == False else "To %s, send %s"%(send_id, send_msg)
+		print(resp)
+	else:
+		print("Client connect Fail")
 
 if __name__=="__main__":
-    #x = torch.Tensor([[1,2,3,4,5],[6,7,8,9,10]])
-    #y = torch.Tensor([[1,2,3,4,5],[6,7,8,9,10]])
+	#x = torch.Tensor([[1,2,3,4,5],[6,7,8,9,10]])
+	#y = torch.Tensor([[1,2,3,4,5],[6,7,8,9,10]])
 
-    x = np.array([[1,2,3,4,5],[6,7,8,9,10]])
-    y = np.array([[1, 2, 3, 4, 5], [6, 7, 8, 9, 10]])
+	x = np.array([[1,2,3,4,5],[6,7,8,9,10]])
+	y = np.array([[1, 2, 3, 4, 5], [6, 7, 8, 9, 10]])
 
-    print(pearson_correlation_coeff(x, y))
+	print(pearson_correlation_coeff(x, y))
 
