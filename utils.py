@@ -90,10 +90,7 @@ def big_contour(npy, rate, filter_rate):
 	contour = np.array(contour).astype(float)
 	return contour
 
-def surface_DSC(output_, target_):
-	prediction = binary(output_, 0.5)
-	ground_truth = binary(target_, 0.5)
-
+def surface_DSC(prediction, ground_truth):
 	b_gt = big_contour(ground_truth, 5, 1)
 	s_p = small_contour(prediction, 3)
 	bs_gtp = np.sum((b_gt + s_p) == 2)
@@ -104,6 +101,17 @@ def surface_DSC(output_, target_):
 
 	s_DSC = (bs_gtp + bs_pgt) / (np.sum(s_p) + np.sum(s_gt))
 	return s_DSC
+
+def surface_DSC_batch(output_, target_):
+	output_ = output_.type(torch.FloatTensor).numpy()
+	target_ = target_.type(torch.FloatTensor).numpy()
+	batch_size = output_.shape[0]
+	s_DSC_array = np.zeros(batch_size)
+	for idx in range(batch_size):
+		prediction = binary(output_[idx, 0, :, :].reshape((512, 512)), 0.5)
+		ground_truth = binary(target_[idx, 0, :, :].reshape((512, 512)), 0.5)
+		s_DSC_array[idx] = surface_DSC(prediction, ground_truth)
+	return s_DSC_array
 
 class AverageMeter(object):
 	"""Computes and stores the average and current value"""
@@ -126,8 +134,8 @@ class SurfaceDSC(object):
 	def __init__(self):
 		self.sDSC = AverageMeter()
 
-	def update(self, sDSC, n):
-		self.sDSC.update(sDSC, n=n)
+	def update(self, surfDice, n):
+		self.sDSC.update(surfDice, n = n)
 
 class ConfusionMatrix(object):
 	def __init__(self):

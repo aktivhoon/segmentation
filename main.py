@@ -59,7 +59,7 @@ def arg_parse():
                         help='The setting sampler')
 
     parser.add_argument('--epoch', type=int, default=300, help='The number of epochs')
-    parser.add_argument('--batch_size', type=int, default=20, help='The size of batch')
+    parser.add_argument('--batch_size', type=int, default=60, help='The size of batch')
     parser.add_argument('--test', action="store_true", help='The size of batch')
 
     parser.add_argument('--save_dir', type=str, default='',
@@ -94,18 +94,18 @@ if __name__ == "__main__":
     os.environ["CUDA_VISIBLE_DEVICES"] = arg.gpus
     torch_device = torch.device("cuda")
 
-    train_path = "/data/YH/voxel_data/prostate/train/"
-    val_path = "/data/YH/voxel_data/prostate/val/"
-    test_path = "/data/YH/voxel_data/prostate/test/"
+    train_path = "/data/YH/2d_data/bladder/train/"
+    val_path = "/data/YH/2d_data/bladder/val/"
+    test_path = "/data/YH/2d_data/bladder/test/"
 
     preprocess = preprocess.get_preprocess(arg.augment)
 
     train_loader = Loader(train_path, arg.batch_size, transform = preprocess, sampler = '',
-        torch_type = 'float', cpus = 4, shuffle = True, drop_last = True, is3d = True)
+        torch_type = 'float', cpus = 4, shuffle = True, drop_last = True)
     val_loader = Loader(val_path, arg.batch_size, transform=preprocess, sampler=arg.sampler,
-        torch_type=arg.dtype, cpus=arg.cpus, shuffle=False, drop_last=False, is3d = True)
+        torch_type=arg.dtype, cpus=arg.cpus, shuffle=False, drop_last=False)
     test_loader = Loader(test_path, 1, torch_type=arg.dtype, cpus=arg.cpus,
-        shuffle=False, drop_last=False, is3d = True)
+        shuffle=False, drop_last=False)
     norm_layer = nn.BatchNorm2d
 
     act = nn.ReLU
@@ -123,7 +123,6 @@ if __name__ == "__main__":
         model = VNetTrainer(arg, net, torch_device, recon_loss = recon_loss)
     else:
         model = CNNTrainer(arg, net, torch_device, recon_loss = recon_loss)
-
     if arg.test is False:
         model.train(train_loader, val_loader)
     model.test(test_loader, val_loader)

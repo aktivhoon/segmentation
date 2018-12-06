@@ -10,6 +10,7 @@ import torch.nn as nn
 from .BaseTrainer import BaseTrainer
 from models.unet_parts import weights_init_kaiming
 from utils import torch_downsample
+from loss import dice_coeff_loss
 
 from sklearn.metrics import f1_score, confusion_matrix, recall_score, jaccard_similarity_score, roc_curve, precision_recall_curve, roc_auc_score, auc
 
@@ -73,18 +74,14 @@ class CNNTrainer(BaseTrainer):
 			for i, (input_, target_, _) in enumerate(train_loader):
 				self.G.train()
 				input_, target_ = input_.to(self.torch_device), target_.to(self.torch_device)
-				output_ = self.G(input_)
-				recon_loss = self.recon_loss(output_, target_)
+				output_ = self.G(input_).sigmoid()
+				recon_loss = dice_coeff_loss(output_, target_)
 				
 				self.optim.zero_grad()
 				recon_loss.backward()
 				self.optim.step()
 
-				input_np = input_.type(torch.FloatTensor).numpy()
-				target_np = target_.type(torch.FloatTensor).numpy()
-				output_np = output_.data.cpu().numpy()
-
-				if (i % 50) == 0:
+				if (i % 5) == 0:
 					self.logger.will_write("[Train] epoch: %d loss: %f" % (epoch, recon_loss))
 
 			if val_loader is not None:
@@ -104,19 +101,19 @@ class CNNTrainer(BaseTrainer):
 		with torch.no_grad():
 			# (tn, fp, fn, tp)
 			cm = utils.ConfusionMatrix()
-			sDice = utils.SurfaceDSC()
+			sd = utils.SurfaceDSC()
 
 			for i, (input_, target_, _) in enumerate(val_loader):
 				_, output_, target_ = self.forward_for_test(input_, target_)
-				sDice.update(utils.surface_DSC(target_, output_))
+				sd.update(utils.surface_DSC_batch(target_, output_), n=output_.shape[0])
 				cm.update(utils.confusion_matrix_2d(output_, target_, 0.5, reduce = False), n = output_.shape[0])
 
-			metric = sDice.sDSC
+			metric = sd.sDSC.avg
 			if metric > self.best_metric:
 				self.best_metric = metric
 				self.save(epoch)
 
-			self.logger.write("[Val] epoch: %d f05: %f f1: %f f2: %f jacard:%f dice: %f" % (epoch, cm.f05, cm.f1, cm.f2, cm.jcc.avg, cm.dice.avg))
+			self.logger.write("[Val] epoch: %d f05: %f f1: %f f2: %f jacard: %f dice: %f surf_dice: %f" % (epoch, cm.f05, cm.f1, cm.f2, cm.jcc.avg, cm.dice.avg, sd.sDSC.avg))
 
 	def get_best_th(self, loader):
 		y_true = np.array([])
@@ -145,6 +142,7 @@ class CNNTrainer(BaseTrainer):
 		print("\nStart Test")
 		self.G.eval()
 		with torch.no_grad():
+			sd = utils.SurfaceDSC()
 			cm = utils.ConfusionMatrix()
 
 			y_true = np.array([])
@@ -152,6 +150,7 @@ class CNNTrainer(BaseTrainer):
 
 			for i, (input_, target_, f_name) in enumerate(test_loader):
 				input_, output_, target_ = self.forward_for_test(input_, target_)
+				sd.update(utils.surface_DSC_batch(target_, output_), n=output_.shape[0])
 				cm.update(utils.confusion_matrix_2d(output_, target_, 0.5, reduce=False), n=output_.shape[0])
 
 				input_np = input_.type(torch.FloatTensor).numpy()
@@ -168,13 +167,13 @@ class CNNTrainer(BaseTrainer):
 
 					save_path = "%s/fold%s/%s" % (self.save_path, self.fold, f_name[batch_idx][:-4])
 					utils.image_save(save_path, input_b, target_b, output_b)
-					self.logger.will_write("[Save] fname:%s dice:%f jss:%f" % (f_name[batch_idx][:-4], cm.dice.val[batch_idx], cm.jcc.val[batch_idx]))
+					self.logger.will_write("[Save] fname:%s dice:%f jss:%f surf_dice:%f" % (f_name[batch_idx][:-4], cm.dice.val[batch_idx], cm.jcc.val[batch_idx], sd.sDSC.val[batch_idx]))
 
 			pr_values = np.array(precision_recall_curve(y_true, y_pred))
 
 			roc_auc = roc_auc_score(y_true, y_pred)
 			pr_auc = auc(pr_values[0], pr_values[1], reorder=True)
 
-		self.logger.write("Best dice:%f jcc:%f f05:%f f1:%f f2:%f roc:%f pr:%f" % (cm.dice.avg, cm.jcc.avg, cm.f05, cm.f1, cm.f2, roc_auc, pr_auc))
+		self.logger.write("Best dice:%f surf_dice:%f jcc:%f f05:%f f1:%f f2:%f roc:%f pr:%f" % (cm.dice.avg, sd.sDSC.avg, cm.jcc.avg, cm.f05, cm.f1, cm.f2, roc_auc, pr_auc))
 		print("End Test\n")
 

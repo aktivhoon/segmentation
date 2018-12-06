@@ -62,6 +62,7 @@ class Unet2D(nn.Module):
 		up1 = self.up_concat1(conv1, up2)
 
 		final = self.final(up1)
+		
 		return final
 
 if __name__ == "__main__":
