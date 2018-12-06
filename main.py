@@ -12,12 +12,13 @@ from Loader import Loader
 from models.unet import Unet2D
 from models.unetRes import UnetRes2D
 from models.vnet import VNet
+from models.unetBR import UnetBR2D
 
 from trainers.CNNTrainer import CNNTrainer
 from trainers.VNetTrainer import VNetTrainer
 
 def arg_parse():
-    desc = "Nucleus Segmentation"
+    desc = "Organ Segmentation"
     parser = argparse.ArgumentParser(description=desc)
 
     parser.add_argument('--gpus', type=str, default="0,1,2,3",
@@ -25,7 +26,7 @@ def arg_parse():
     parser.add_argument('--cpus', type=int, default="4",
                         help="Select CPU Number workers")
     parser.add_argument('--model', type=str, default='unet',
-                        choices=["unet", "unetres", "probunet", "vnet"], required=True)
+                        choices=["unet", "unetres", "unetbr", "vnet"], required=True)
     parser.add_argument('--norm', type=str, default='bn', choices=["in", "bn", "bin"])
     parser.add_argument('--act', type=str, default='relu', choices=["relu", "elu", "leaky", "prelu"])
 
@@ -113,6 +114,8 @@ if __name__ == "__main__":
         net = Unet2D(feature_scale = arg.feature_scale, act = act)
     elif arg.model == "unetres":
         net = UnetRes2D(1, nn.InstanceNorm2d, is_pool=arg.pool)
+    elif arg.model == "unetbr":
+        net = UnetBR2D(1, nn.InstanceNorm2d, is_pool=arg.pool)
     elif arg.model == "vnet":
         net = VNet(elu=False)
 
