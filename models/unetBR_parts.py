@@ -1,6 +1,7 @@
 import torch
 import torch.nn as nn
 import torch.nn.functional as F
+from .partialconv2d import PartialConv2d
 
 def weights_init_kaiming(m):
     classname = m.__class__.__name__
@@ -20,7 +21,7 @@ def weights_init_kaiming(m):
 class ConvNormReLU(nn.Module):
     def __init__(self, in_c, out_c, norm, kernel_size=3, stride=1, padding=1, group=1):
         super(ConvNormReLU, self).__init__()
-        self.conv1 = nn.Sequential(nn.Conv2d(in_c, out_c, kernel_size, stride, padding),
+        self.conv1 = nn.Sequential(PartialConv2d(in_c, out_c, kernel_size, stride, padding),
                                    norm(out_c),
                                    nn.ReLU(inplace=True),)
         
@@ -44,8 +45,8 @@ class Refine(nn.Module):
     def __init__(self, in_c):
         super(Refine, self).__init__()
         self.relu = nn.ReLU(inplace=True)
-        self.conv1 = nn.Conv2d(in_c, in_c, kernel_size=3, padding=1)
-        self.conv2 = nn.Conv2d(in_c, in_c, kernel_size=3, padding=1)
+        self.conv1 = PartialConv2d(in_c, in_c, kernel_size=3, padding=1)
+        self.conv2 = PartialConv2d(in_c, in_c, kernel_size=3, padding=1)
 
     def forward(self, x):
         residual = x

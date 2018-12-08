@@ -1,7 +1,7 @@
 import torch.nn as nn
 from .unetBR_parts import UnetResConv2D, UnetResUpConv2D, weights_init_kaiming, ConvNormReLU, Refine
 import torch.nn.functional as F
-
+from .partialconv2d import PartialConv2d
 
 class UnetBR2D(nn.Module):
 
@@ -57,6 +57,9 @@ class UnetBR2D(nn.Module):
                 m.apply(weights_init_kaiming)
             elif isinstance(m, nn.GroupNorm):
                 m.apply(weights_init_kaiming)
+            elif isinstance(m, PartialConv2d):
+                m.init.kaiming_normal_(m.weight, mode='fan_out', nonlinearity='relu')
+
 
     def forward(self, inputs):
         conv1     = self.conv1(inputs)
