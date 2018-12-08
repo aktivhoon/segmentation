@@ -74,8 +74,8 @@ class CNNTrainer(BaseTrainer):
 			for i, (input_, target_, _) in enumerate(train_loader):
 				self.G.train()
 				input_, target_ = input_.to(self.torch_device), target_.to(self.torch_device)
-				output_ = self.G(input_).sigmoid()
-				recon_loss = dice_coeff_loss(output_, target_)
+				output_ = self.G(input_)
+				recon_loss = self.recon_loss(output_, target_)
 				
 				self.optim.zero_grad()
 				recon_loss.backward()

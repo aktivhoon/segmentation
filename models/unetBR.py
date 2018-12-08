@@ -6,7 +6,7 @@ import torch.nn.functional as F
 class UnetBR2D(nn.Module):
 
     def __init__(self, n_classes, norm, is_pool=False):
-        super(UnetRes2D, self).__init__()
+        super(UnetBR2D, self).__init__()
         print("UnetBoundaryReine2D")
         ch = [16, 32, 64, 128, 256]
 
