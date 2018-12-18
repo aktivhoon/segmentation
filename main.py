@@ -60,7 +60,7 @@ def arg_parse():
                         help='The setting sampler')
 
     parser.add_argument('--epoch', type=int, default=300, help='The number of epochs')
-    parser.add_argument('--batch_size', type=int, default=60, help='The size of batch')
+    parser.add_argument('--batch_size', type=int, default=42, help='The size of batch')
     parser.add_argument('--test', action="store_true", help='The size of batch')
 
     parser.add_argument('--save_dir', type=str, default='',
@@ -95,9 +95,9 @@ if __name__ == "__main__":
     os.environ["CUDA_VISIBLE_DEVICES"] = arg.gpus
     torch_device = torch.device("cuda")
 
-    train_path = "/data/YH/2d_data/prostate/train/"
-    val_path = "/data/YH/2d_data/prostate/val/"
-    test_path = "/data/YH/2d_data/prostate/test/"
+    train_path = "/data/YH/2d_data/bladder/train/"
+    val_path = "/data/YH/2d_data/bladder/val/"
+    test_path = "/data/YH/2d_data/bladder/test/"
 
     preprocess = preprocess.get_preprocess(arg.augment)
 

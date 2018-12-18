@@ -41,6 +41,21 @@ class GroupBlock(nn.Module):
         x = self.gconv(x)
         return self.conv3(x)
 
+class Refine(nn.Module):
+    def __init__(self, in_c):
+        super(Refine, self).__init__()
+        self.relu = nn.ReLU(inplace=True)
+        self.conv1 = PartialConv2d(in_c, in_c, kernel_size=3, padding=1)
+        self.conv2 = PartialConv2d(in_c, in_c, kernel_size=3, padding=1)
+
+    def forward(self, x):
+        residual = x
+        x = self.conv1(x)
+        x = self.relu(x)
+        x = self.conv2(x)
+
+        out = residual + x
+        return out
 
 class UnetResConv2D(nn.Module):
     def __init__(self, in_c, out_c, norm, group, kernel_size=3, stride=1, padding=1):
