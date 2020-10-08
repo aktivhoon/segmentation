@@ -1,5 +1,8 @@
 ## Ignore File ##
 *.ipynb
+*.ipynb_checkpoints/
+*.idea
+__pycache__/
 ## Ignore Data ##
 data/
 .DS_Store
